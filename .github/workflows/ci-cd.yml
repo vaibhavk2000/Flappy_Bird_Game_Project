@@ -51,7 +51,7 @@ jobs:
           name: flappy-bird-build
           path: dist/
 
-  # 2. DEPLOY JOB (Runs only on push to main/master after tests pass)
+  # 2. AUTOMATED DEPLOYMENT TO AWS EC2
   deploy:
     needs: build-and-test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -64,8 +64,34 @@ jobs:
           name: flappy-bird-build
           path: dist/
 
-      - name: Deploy Step
-        run: |
-          echo "Executing deployment commands here..."
-          # Insert your target-specific deployment script/tool here:
-          # e.g., GitHub Pages, AWS S3 / EC2, Docker Registry, Server SSH commands
+      - name: Copy Package to EC2 via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "dist/flappy_bird_app.tar.gz"
+          target: "~/app_deployments/"
+          strip_components: 1
+
+      - name: Execute Remote SSH Commands on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Set up deployment directory
+            mkdir -p ~/flappy_bird_app
+            
+            # Extract new release package
+            tar -xzvf ~/app_deployments/flappy_bird_app.tar.gz -C ~/flappy_bird_app/
+            
+            # Navigate to directory and install/update dependencies
+            cd ~/flappy_bird_app
+            pip install -r requirements.txt
+            
+            # Remove uploaded archive from temp location
+            rm ~/app_deployments/flappy_bird_app.tar.gz
+
+            echo "Deployment completed successfully on EC2!"
