@@ -40,15 +40,15 @@ jobs:
       - name: Run Tests
         run: pytest -q
 
-      - name: Build Source Package / Artifact
+      - name: Create Release Package
         run: |
-          python -m pip install build
-          python -m build
+          mkdir -p dist
+          tar -czvf dist/flappy_bird_app.tar.gz --exclude='.git' --exclude='dist' .
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifact
+          name: flappy-bird-build
           path: dist/
 
   # 2. DEPLOY JOB (Runs only on push to main/master after tests pass)
@@ -61,11 +61,11 @@ jobs:
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: build-artifact
+          name: flappy-bird-build
           path: dist/
 
       - name: Deploy Step
         run: |
           echo "Executing deployment commands here..."
           # Insert your target-specific deployment script/tool here:
-          # e.g., GitHub Pages, AWS S3 / EC2, Docker Registry, PyPI, Server SSH commands
+          # e.g., GitHub Pages, AWS S3 / EC2, Docker Registry, Server SSH commands
